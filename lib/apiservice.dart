@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -19,7 +20,8 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> postCall(String slug, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> postCall(
+      String slug, Map<String, dynamic> data) async {
     try {
       final response = await http.post(
         Uri.parse('$url$slug'),
@@ -36,7 +38,8 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> patchCall(String slug, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> patchCall(
+      String slug, Map<String, dynamic> data) async {
     try {
       final response = await http.patch(
         Uri.parse('$url$slug'),
@@ -96,7 +99,8 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> tokenWithPostCall3(String slug, Map<String, dynamic> data, String token) async {
+  Future<Map<String, dynamic>> tokenWithPostCall3(
+      String slug, Map<String, dynamic> data, String token) async {
     String requestBodyJson = jsonEncode(data);
 
     // Make the POST request
@@ -127,7 +131,38 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> tokenWithGetCall(String slug, String token) async {
+  Future<Map<String, dynamic>> tokenWithPostCall4(
+      String slug, String userid, String paths, String token) async {
+    try {
+      var uri = Uri.parse('$url$slug');
+      var request = http.MultipartRequest('POST', uri)
+        ..headers['Authorization'] = 'Bearer $token';
+
+      request.fields['UserId'] = userid;
+
+      final imageFile = await http.MultipartFile.fromPath(
+        'File',
+        paths,
+      );
+
+      request.files.add(imageFile);
+
+      final response = await request.send();
+      final responseData = await response.stream.bytesToString();
+
+      print('Server Response: $responseData');
+
+      // Send the request and get the response
+      Map<String, dynamic> json = jsonDecode(responseData);
+      return json;
+    } catch (e) {
+      print('Server errr: $e');
+      throw Exception(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> tokenWithGetCall(
+      String slug, String token) async {
     try {
       final response = await http.get(
         Uri.parse('$url$slug'),
@@ -147,10 +182,14 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> connectRobot(String slug, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> connectRobot(
+      String slug, Map<String, dynamic> data) async {
     try {
       print('slug $slug');
-      final response = await http.post(Uri.parse(slug), body: data,);
+      final response = await http.post(
+        Uri.parse(slug),
+        body: data,
+      );
       print('response ${response.statusCode}');
       if (response.statusCode == 200) {
         Map<String, dynamic> json = jsonDecode(response.body);

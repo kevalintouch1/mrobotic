@@ -16,6 +16,7 @@ class _out_productState extends State<out_product> {
   ApiService apiService = ApiService();
   String profileImagePath = "";
   bool loader = true;
+
   @override
   void initState() {
     super.initState();
@@ -63,21 +64,27 @@ class _out_productState extends State<out_product> {
             ),
             actions: [
               profileImagePath.isNotEmpty
-                  ? CircleAvatar(
-                      backgroundColor: Colors.transparent,
-                      radius: 35,
+                  ? Container(
+                      margin: const EdgeInsets.only(right: 15),
+                      child: CircleAvatar(
+                          backgroundColor: Colors.transparent,
+                          radius: 35,
+                          child: ClipOval(
+                            child: Image.network(
+                              profileImagePath,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                            ),
+                          )),
+                    )
+                  : Container(
+                      margin: const EdgeInsets.only(right: 15),
                       child: ClipOval(
-                        child: Image.network(
-                          profileImagePath,
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
+                        child: Image.asset(
+                          "assets/person.png",
+                          scale: 2,
                         ),
-                      ))
-                  : ClipOval(
-                      child: Image.asset(
-                        "assets/person.png",
-                        scale: 2,
                       ),
                     ),
             ],

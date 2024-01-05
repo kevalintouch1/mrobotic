@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:mrobotic/home1/Sign/signin.dart';
 import 'package:mrobotic/home1/Sign/signup.dart';
@@ -9,6 +8,7 @@ import 'package:mrobotic/home1/contact_us.dart';
 import 'package:mrobotic/home1/hardwareconnect.dart';
 import 'package:mrobotic/home1/home2/our_product.dart';
 import 'package:mrobotic/home1/mission&vission.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velocity_x/velocity_x.dart';
 
@@ -40,8 +40,6 @@ class _home1State extends State<home1> {
 
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,7 +47,8 @@ class _home1State extends State<home1> {
         elevation: 0,
         centerTitle: true,
         backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white), // Set the drawer icon color to white
+        iconTheme: const IconThemeData(color: Colors.white),
+        // Set the drawer icon color to white
         actions: [
           GestureDetector(
             onTap: () async {
@@ -59,7 +58,12 @@ class _home1State extends State<home1> {
                     builder: (context) => const signup(),
                   ));
             },
-            child: Image.asset("assets/person.png", scale: 2,),
+            child: Container(
+                margin: const EdgeInsets.only(right: 15),
+                child: Image.asset(
+                  "assets/person.png",
+                  scale: 2,
+                )),
           ),
         ],
         title: "MROBOTICS".text.white.xl2.bold.center.make(),
@@ -84,8 +88,7 @@ class _home1State extends State<home1> {
               left: 20,
             ),
             child: ListView(
-              keyboardDismissBehavior:
-              ScrollViewKeyboardDismissBehavior.onDrag,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               // mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Row(
@@ -187,21 +190,18 @@ class _home1State extends State<home1> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const hardwareconnect(),
-                  ));
+              requestPermissions();
             },
             style: ElevatedButton.styleFrom(
               primary: const Color(0xFF173BB5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(25.0),
               ),
-              padding: const EdgeInsets.only(left: 30,top: 15,right: 30,bottom: 15),
+              padding: const EdgeInsets.only(
+                  left: 30, top: 15, right: 30, bottom: 15),
               elevation: 5.0,
               shadowColor: Colors.black,
-              ),
+            ),
             child: const Text(
               '+ Connect',
               style: TextStyle(
@@ -388,5 +388,33 @@ class _home1State extends State<home1> {
         ),
       ),
     );
+  }
+
+
+
+  Future<void> requestPermissions() async {
+    // Request location permission
+    var status = await Permission.location.request();
+    if (status.isGranted) {
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => hardwareconnect(),
+          ));
+    } else {
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => hardwareconnect(),
+          ));
+    }
+
+    // Request network state permission
+    status = await Permission.accessMediaLocation.request();
+    if (status.isGranted) {
+      print('Media location permission granted');
+    } else {
+      print('Media location permission denied');
+    }
   }
 }

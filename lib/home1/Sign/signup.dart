@@ -1,7 +1,7 @@
 // ignore_for_file: unused_local_variable
 
-import 'dart:math';
 import 'dart:developer' as d;
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -30,6 +30,7 @@ class _signupState extends State<signup> {
   TextEditingController email = TextEditingController();
   TextEditingController person = TextEditingController();
   final GlobalKey<FormState> _signkey = GlobalKey<FormState>();
+
   String generateCaptchaCode(int length) {
     final rand = Random();
     const chars = '0123456789';
@@ -66,6 +67,7 @@ class _signupState extends State<signup> {
   var Username;
   var resdata;
   var policy;
+
   init() async {
     pref = await SharedPreferences.getInstance();
     contactNo = pref.getString("contactNo").toString();
@@ -73,10 +75,11 @@ class _signupState extends State<signup> {
     // policy = pref.getString("policy").toString();
     var resdata = await apiService.getCall('/api/Content?Type=privacy policy');
     d.log('${resdata}');
-    if (mounted)
+    if (mounted) {
       setState(() {
         policy = resdata['data']['content'];
       });
+    }
   }
 
   void _showdialog() {
@@ -169,8 +172,8 @@ class _signupState extends State<signup> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(5),
                                         side: const BorderSide(
-                                          color: Color(
-                                              0xff1539b0), // blue border color
+                                          color: Color(0xff1539b0),
+                                          // blue border color
                                           width: 2,
                                         ),
                                       ),
@@ -188,8 +191,8 @@ class _signupState extends State<signup> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(5),
                                         side: const BorderSide(
-                                          color: Color(
-                                              0xff1539b0), // blue border color
+                                          color: Color(0xff1539b0),
+                                          // blue border color
                                           width: 2,
                                         ),
                                       ),
@@ -214,31 +217,13 @@ class _signupState extends State<signup> {
                                           '/api/Auth/Register', param);
 
                                       d.log('${resdata}');
+                                      print('resdata ${resdata['status']}');
                                       if (resdata['status'] == 1) {
                                         await pref
                                             .setInt("USER_ID", resdata['data'])
                                             .toString();
-
-                                        Future.delayed(
-                                            const Duration(milliseconds: 10),
-                                            () async {
-                                          Navigator.pushAndRemoveUntil(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  otpverification(autoid: DATA),
-                                            ),
-                                            (route) => false,
-                                          );
-                                        });
                                         snackbar.ToastMsg(resdata['message'], 2,
                                             'green', context);
-
-                                        // company.text = '';
-                                        // phoneno.text = '';
-                                        // email.text = '';
-                                        // person.text = '';
-                                        // _captchaCode = '';
                                       } else if (resdata['status'] == 2) {
                                         snackbar.ToastMsg(resdata['message'], 2,
                                             'red', context);
@@ -302,74 +287,66 @@ class _signupState extends State<signup> {
                     ),
                     onPressed: _isEnabled
                         ? () async {
-                            setState(() {
-                              allow = !allow; // update button press state
-                            });
-                            var param = new Map<String, dynamic>();
+                      setState(() {
+                        allow = !allow; // update button press state
+                      });
+                      var param = new Map<String, dynamic>();
 
-                            param['CompanyName'] = company.text;
-                            param['ContactNo'] = phoneno.text;
-                            param['Email'] = email.text;
-                            param['PersonName'] = person.text;
-                            showDialog(
-                              context: context,
-                              // barrierDismissible: false,
-                              builder: (BuildContext context) {
-                                return Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              },
-                            );
-                            var resdata = await apiService.postCall(
-                                '/api/Auth/Register', param);
+                      param['CompanyName'] = company.text;
+                      param['ContactNo'] = phoneno.text;
+                      param['Email'] = email.text;
+                      param['PersonName'] = person.text;
+                      showDialog(
+                        context: context,
+                        // barrierDismissible: false,
+                        builder: (BuildContext context) {
+                          return Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        },
+                      );
+                      var resdata = await apiService.postCall(
+                          '/api/Auth/Register', param);
 
-                            d.log('${resdata}');
-                            if (resdata['status'] == 1) {
-                              await pref
-                                  .setInt("USER_ID", resdata['data'])
-                                  .toString();
+                      d.log('${resdata}');
+                      if (resdata['status'] == 1) {
+                        pref.setInt("USER_ID", resdata['data']).toString();
 
-                              Future.delayed(const Duration(milliseconds: 10),
-                                  () async {
-                                Navigator.pushAndRemoveUntil(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        otpverification(autoid: DATA),
-                                  ),
-                                  (route) => false,
-                                );
-                              });
-                              snackbar.ToastMsg(
-                                  resdata['message'], 2, 'green', context);
-
-                              // company.text = '';
-                              // phoneno.text = '';
-                              // email.text = '';
-                              // person.text = '';
-                              // _captchaCode = '';
-                            } else if (resdata['status'] == 2) {
-                              snackbar.ToastMsg(
-                                  resdata['message'], 2, 'red', context);
-                            } else if (resdata['status'] == 3) {
-                              snackbar.ToastMsg(
-                                  resdata['message'], 2, 'red', context);
-                            }
-
-                            Navigator.pop(context);
-
-                            Future.delayed(const Duration(milliseconds: 10),
-                                () {
+                        Future.delayed(const Duration(milliseconds: 10),
+                                () async {
                               Navigator.pushAndRemoveUntil(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
                                       otpverification(autoid: DATA),
                                 ),
-                                (route) => false,
+                                    (route) => false,
                               );
                             });
-                          }
+                        snackbar.ToastMsg(
+                            resdata['message'], 2, 'green', context);
+                      } else if (resdata['status'] == 2) {
+                        snackbar.ToastMsg(
+                            resdata['message'], 2, 'red', context);
+                      } else if (resdata['status'] == 3) {
+                        snackbar.ToastMsg(
+                            resdata['message'], 2, 'red', context);
+                      }
+
+                      Navigator.pop(context);
+
+                      // Future.delayed(const Duration(milliseconds: 10),
+                      //         () {
+                      //       Navigator.pushAndRemoveUntil(
+                      //         context,
+                      //         MaterialPageRoute(
+                      //           builder: (context) =>
+                      //               otpverification(autoid: DATA),
+                      //         ),
+                      //             (route) => false,
+                      //       );
+                      //     });
+                    }
                         : null,
                     child: const Text("I Agree"),
                   ),

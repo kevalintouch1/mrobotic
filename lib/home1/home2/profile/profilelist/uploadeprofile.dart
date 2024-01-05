@@ -46,6 +46,7 @@ class _UploadProfileState extends State<UploadProfile> {
   var accessToken;
   var fileData;
   String imageUrl = "";
+  File? _imageFile;
   init() async {
     pref = await SharedPreferences.getInstance();
     accessToken = pref.getString('accessToken').toString();
@@ -70,10 +71,11 @@ class _UploadProfileState extends State<UploadProfile> {
 
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile =
-        await ImagePicker().getImage(source: ImageSource.gallery);
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     setState(() {
       if (pickedFile != null) {
         fileimagepath = pickedFile.path;
+        _imageFile = File(fileimagepath);
         profileImagePath = "";
       } else {
         print('No image selected.');
@@ -174,15 +176,12 @@ class _UploadProfileState extends State<UploadProfile> {
           ),
           GestureDetector(
             onTap: () async {
-              log("${USER_ID}");
+              log("${fileimagepath}");
 
               if (fileimagepath.isEmpty) {
                 snackbar.ToastMsg(
                     "Please Select Profile Image", 10, 'red', context);
               } else if (fileimagepath.isNotEmpty) {
-                var param = new Map<String, dynamic>();
-                param['UserId'] = USER_ID.toString();
-                param['File'] = await MultipartFile.fromFile(fileimagepath);
                 showDialog(
                   context: context,
                   // barrierDismissible: false,
@@ -192,9 +191,9 @@ class _UploadProfileState extends State<UploadProfile> {
                     );
                   },
                 );
-                print(param);
-                var resdata = await apiService.tokenWithPostCall2(
-                    '/api/Setting/UploadProfile', param, accessToken);
+
+                var resdata = await apiService.tokenWithPostCall4(
+                    '/api/Setting/UploadProfile',  USER_ID.toString(),fileimagepath, accessToken);
                 log('${resdata}');
                 log("message");
 
@@ -240,5 +239,9 @@ class _UploadProfileState extends State<UploadProfile> {
         ],
       ),
     );
+  }
+
+  void uploadFileToServer(File imagePath) async {
+
   }
 }

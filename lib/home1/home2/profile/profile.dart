@@ -74,23 +74,29 @@ class _profileState extends State<profile> {
         ),
         actions: [
           profileImagePath.isNotEmpty
-              ? CircleAvatar(
-                  backgroundColor: Colors.transparent,
-                  radius: 35,
-                  child: ClipOval(
-                    child: Image.network(
-                      profileImagePath,
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                    ),
-                  ))
-              : ClipOval(
-                  child: Image.asset(
-                    "assets/person.png",
-                    scale: 2,
+              ? Container(
+            margin: const EdgeInsets.only(right: 15),
+            child: CircleAvatar(
+                backgroundColor: Colors.transparent,
+                radius: 35,
+                child: ClipOval(
+                  child: Image.network(
+                    profileImagePath,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
                   ),
-                ),
+                )),
+          )
+              : Container(
+            margin: const EdgeInsets.only(right: 15),
+            child: ClipOval(
+              child: Image.asset(
+                "assets/person.png",
+                scale: 2,
+              ),
+            ),
+          ),
         ],
         title: username != null
             ? '${username}'.text.white.xl2.bold.center.make()

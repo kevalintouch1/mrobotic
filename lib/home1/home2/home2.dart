@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:developer';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mrobotic/apiservice.dart';
@@ -10,8 +11,12 @@ import 'package:mrobotic/home1/home1.dart';
 import 'package:mrobotic/home1/home2/dashboard.dart';
 import 'package:mrobotic/home1/home2/our_product.dart';
 import 'package:mrobotic/home1/home2/profile/profile.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velocity_x/velocity_x.dart';
+
+import '../../Bluethooth/FlutterWifiIoT.dart';
+import '../hardwareconnect.dart';
 
 class home2 extends StatefulWidget {
   const home2({super.key, required autoid});
@@ -24,6 +29,7 @@ class _home2State extends State<home2> {
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
   int selectedButtonIndex = 0;
+
   // bool training = false;
   // bool order = false;
   // bool feedback = false;
@@ -38,6 +44,7 @@ class _home2State extends State<home2> {
   late SharedPreferences pref;
   ApiService apiService = ApiService();
   List data = [];
+
   @override
   void initState() {
     super.initState();
@@ -52,8 +59,12 @@ class _home2State extends State<home2> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
   }
 
   String profileImagePath = "";
@@ -63,33 +74,57 @@ class _home2State extends State<home2> {
   var status;
 
   Future<void> init() async {
-    // try {
+    try {
       pref = await SharedPreferences.getInstance();
       USER_ID = pref.getInt("USER_ID");
       accessToken = pref.getString('accessToken').toString();
       profileImagePath = pref.getString('profileImagePath') ?? '';
       username = pref.getString('username').toString();
-      status = pref.getInt('status').toString();
+
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (BuildContext context) {
+          return const Center(
+            child:
+            CircularProgressIndicator(),
+          );
+        },
+      );
+
       var param = <String, dynamic>{};
       param['UserId'] = USER_ID.toString();
       var resdata = await apiService.tokenWithPostCall2(
           '/api/Setting/GetProfileImage', param, accessToken);
       var resdata1 = await apiService.tokenWithGetCall(
-          '/api/Home/${USER_ID}', accessToken);
+          '/api/Home/$USER_ID', accessToken);
       await pref.setInt('status', resdata1['data']['status']);
-      log('status : $status');
-      log('status23 : ${resdata1['data']['status']}');
-      log('resdata1 : $status');
+      status = pref.getInt('status');
+
+
+      print('accessToken : $accessToken');
+      print('USER_ID : $USER_ID');
+      print('status23 : ${resdata1['data']['status']}');
+      print('resdata1 : $status');
+      print('status23: $status');
+      print('status23: $status');
+      print('status23: $_isVerified');
+      print('status23: $_isLoading');
 
       setState(() {
         profileImagePath = resdata['data'] ?? '';
         username;
         status;
+        Navigator.pop(context);
       });
-    // } catch (e) {
-    //   // Handle any exceptions that occur during API calls or SharedPreferences access
-    //   print('Error in init:home2 $e');
-    // }
+    } catch (e) {
+      // Handle any exceptions that occur during API calls or SharedPreferences access
+      print('Error in init: $e');
+    }
+  }
+
+  Future<void> _handleRefresh() async {
+    await init();
   }
 
   void _showVerificationPopup() async {
@@ -143,10 +178,11 @@ class _home2State extends State<home2> {
                   _isVerified = verificationSuccessful;
                   _isTryAgain = !verificationSuccessful;
                 });
-//ss
+
                 var param = new Map<String, dynamic>();
                 param['UserId'] = USER_ID.toString();
-                print('userid ${USER_ID.toString()}');
+
+                print('before: $_isVerified $status');
                 try {
                   Navigator.pop(context); // Close the popup
 
@@ -159,26 +195,32 @@ class _home2State extends State<home2> {
                   if (resdata1['status'] == 1) {
                     setState(() {
                       _isLoading = false;
-                      status = 1;
+                      _isVerified = false;
+                      status = 2;
                     });
                   } else if (resdata1['status'] == 2) {
                     setState(() {
                       _isVerified = true;
-                      status = 2;
+                      status = 4;
                     });
+                    // snackbar.ToastMsg(resdata1['message'], 2, 'green', context);
                   } else if (resdata1['status'] == 3) {
                     setState(() {
                       _isTryAgain = false;
                       status = 3;
                     });
+                    // snackbar.ToastMsg(resdata1['message'], 2, 'green', context);
                   } else if (resdata1['status'] == 4) {
                     setState(() {
                       _isVerified = false;
-                      status = 4;
+                      status = 1;
                     });
+                    // snackbar.ToastMsg(resdata1['message'], 2, 'green', context);
                   }
+                  print('after: $_isVerified $status');
+                  // snackbar.ToastMsg(resdata1['message'], 2, 'green', context);
                 } catch (error) {
-                  print('API Errorrs: $error');
+                  print('API Error:1 $error');
                 }
               },
               child: const Text("Done"),
@@ -303,14 +345,17 @@ class _home2State extends State<home2> {
                 ),
               );
             },
-            child: Image.asset(
-              "assets/logout.png",
-              scale: 2.5,
+            child: Container(
+              margin: const EdgeInsets.only(right: 15),
+              child: Image.asset(
+                "assets/logout.png",
+                scale: 2.5,
+              ),
             ),
           ),
         ],
         title: username != null
-            ? '${username}'.text.white.xl2.bold.center.make()
+            ? '$username'.text.white.xl2.bold.center.make()
             : 'User'.text.white.xl2.bold.center.make(),
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -502,18 +547,15 @@ class _home2State extends State<home2> {
         backgroundColor: Colors.white,
         strokeWidth: 2.0,
         onRefresh: () async {
-          init();
+          _handleRefresh();
           return Future<void>.delayed(const Duration(seconds: 1));
         },
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Container(
-              height: 100,
-            ),
             Expanded(
               child: Container(
                 alignment: Alignment.center,
-                height: MediaQuery.of(context).size.width,
                 margin: const EdgeInsets.only(
                   right: 20,
                   left: 20,
@@ -523,6 +565,9 @@ class _home2State extends State<home2> {
                       ScrollViewKeyboardDismissBehavior.onDrag,
                   // mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    const SizedBox(
+                      height: 50,
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -693,6 +738,38 @@ class _home2State extends State<home2> {
                         ),
                       ],
                     ),
+                    const SizedBox(
+                      height: 50,
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(
+                        right: 50,
+                        left: 50,
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          requestPermissions();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          primary: const Color(0xFF173BB5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25.0),
+                          ),
+                          padding: const EdgeInsets.only(
+                              left: 30, top: 15, right: 30, bottom: 15),
+                          elevation: 5.0,
+                          shadowColor: Colors.black,
+                        ),
+                        child: const Text(
+                          '+ Connect',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    )
                   ],
                 ),
               ),
@@ -701,5 +778,31 @@ class _home2State extends State<home2> {
         ),
       ),
     );
+  }
+
+  Future<void> requestPermissions() async {
+    // Request location permission
+    var status = await Permission.location.request();
+    if (status.isGranted) {
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => hardwareconnect(),
+          ));
+    } else {
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => hardwareconnect(),
+          ));
+    }
+
+    // Request network state permission
+    status = await Permission.accessMediaLocation.request();
+    if (status.isGranted) {
+      print('Media location permission granted');
+    } else {
+      print('Media location permission denied');
+    }
   }
 }

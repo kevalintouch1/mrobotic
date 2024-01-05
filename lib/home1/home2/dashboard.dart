@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
-import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:mrobotic/apiservice.dart';
 import 'package:mrobotic/home1/home2/errorscreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +21,7 @@ class dashboard extends StatefulWidget {
 
 class _dashboardState extends State<dashboard> {
   TextEditingController master_pass = TextEditingController();
+
   // final bool _roboton = false;
   final bool ISDELETE = true;
   final GlobalKey<FormState> _master = GlobalKey<FormState>();
@@ -55,8 +54,6 @@ class _dashboardState extends State<dashboard> {
   bool? isDeleted;
   bool loader = true;
 
-
-
   init() async {
     pref = await SharedPreferences.getInstance();
     USER_ID = pref.getInt("USER_ID").toString();
@@ -65,7 +62,7 @@ class _dashboardState extends State<dashboard> {
     profileImagePath = pref.getString('profileImagePath') ?? '';
     product_idisId = pref.getInt("product_idisId").toString();
     robot_id = pref.getString("robot_id").toString();
-    robotmode = (pref.getBool("robotMode")==true) ? 'Auto' : 'Manual';
+    robotmode = (pref.getBool("robotMode") == true) ? 'Auto' : 'Manual';
     Last_Cycle = pref.getString('createdDate').toString();
     // status = pref.getInt('status').toString();
     var param = new Map<String, dynamic>();
@@ -77,21 +74,16 @@ class _dashboardState extends State<dashboard> {
         '/api/Setting/GetProfileImage', param, accessToken);
     log('zdscsafc ${resdata}');
 
-    log('${resdata}');
+    log('GetProduct ${resdata}');
 
     print('GetProfileImage: ${resdata}');
-
 
     setState(() {
       profileImagePath = resdata1['data'] ?? '';
       data = resdata['data'];
       loader = false;
     });
-
   }
-
-
-
 
   void _shodialogmasterpassword(
       {bool currentMode: false, bool inactivemode: false}) async {
@@ -131,9 +123,8 @@ class _dashboardState extends State<dashboard> {
                 if (value == "" || value!.isEmpty) {
                   return "Please Master Password";
                 } else {
-                  null;
+                  return null;
                 }
-                return null;
               },
               cursorColor: const Color(0xff1539b0),
               decoration: InputDecoration(
@@ -180,13 +171,13 @@ class _dashboardState extends State<dashboard> {
 
                     showDialog(
                       context: context,
-                      // barrierDismissible: false,
                       builder: (BuildContext context) {
                         return Center(
                           child: CircularProgressIndicator(),
                         );
                       },
                     );
+
                     try {
                       Navigator.pop(context);
                       var resdata = await apiService.tokenWithPostCall2(
@@ -222,19 +213,8 @@ class _dashboardState extends State<dashboard> {
                       } else if (resdata['status'] == 2) {
                         Navigator.pop(context);
 
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => errorscreen(
-                        //       autoid: data,
-                        //       productid: product_idisId,
-                        //       mode: currentMode,
-                        //       ISACTIVE: inactivemode,
-                        //     ),
-                        //   ),
-                        // );
                         snackbar.ToastMsg(
-                            resdata['message'] ?? '', 2, 'green', context);
+                            resdata['message'] ?? 'Wrong Master Password', 2, 'red', context);
                       }
                     } catch (error) {
                       print('API Error: $error');
@@ -242,7 +222,7 @@ class _dashboardState extends State<dashboard> {
                   }
                 },
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 60),
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
                   height: 40,
                   decoration: BoxDecoration(
                     color: const Color(0xff1539b0),
@@ -259,7 +239,36 @@ class _dashboardState extends State<dashboard> {
                     ),
                   ),
                 ),
-              )
+              ),
+              GestureDetector(
+                onTap: () {},
+                child: Container(
+                  height: 10,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context); // Close the dialog
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xff1539b0),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      "Close",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -288,21 +297,27 @@ class _dashboardState extends State<dashboard> {
             ),
             actions: [
               profileImagePath.isNotEmpty
-                  ? CircleAvatar(
-                      backgroundColor: Colors.transparent,
-                      radius: 35,
+                  ? Container(
+                      margin: const EdgeInsets.only(right: 15),
+                      child: CircleAvatar(
+                          backgroundColor: Colors.transparent,
+                          radius: 35,
+                          child: ClipOval(
+                            child: Image.network(
+                              profileImagePath,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                            ),
+                          )),
+                    )
+                  : Container(
+                      margin: const EdgeInsets.only(right: 15),
                       child: ClipOval(
-                        child: Image.network(
-                          profileImagePath,
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
+                        child: Image.asset(
+                          "assets/person.png",
+                          scale: 2,
                         ),
-                      ))
-                  : ClipOval(
-                      child: Image.asset(
-                        "assets/person.png",
-                        scale: 2,
                       ),
                     ),
             ],
@@ -340,9 +355,7 @@ class _dashboardState extends State<dashboard> {
                       await pref.setInt('product_idisId', item['id']);
                       await pref.setString('robot_id', item['productID']);
                       await pref.setBool("robotMode", mode ?? false);
-                      await pref.setString("createdDate", item['createdDate']);
                       product_idisId = item['id'];
-                      // log('#================== ${product_idisId}');
 
                       _shodialogmasterpassword(
                           currentMode: item['mode'],

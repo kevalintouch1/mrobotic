@@ -4,7 +4,6 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:battery_plus/battery_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +19,7 @@ class errorscreen extends StatefulWidget {
   int productid;
   bool mode;
   bool ISACTIVE;
+
   errorscreen(
       {super.key,
       required autoid,
@@ -35,19 +35,24 @@ class _errorscreenState extends State<errorscreen> {
   List<int> _currentIndexList = [];
   CommonWidget snackbar = CommonWidget();
   List<ProductTransaction> transation = [];
+  int i = 1;
+  TextEditingController ssid = TextEditingController();
+  TextEditingController password = TextEditingController();
+  final GlobalKey<FormState> verifys = GlobalKey<FormState>();
 
   @override
   void addContainer() {
     DateTime now = DateTime.now();
-    int hour = now.hour % 12; // Calculate hour in 12-hour format
-
+    int hour = now.hour % 12;
+    print('object $i');
     ProductTransaction defaultObj = ProductTransaction(
       id: 0,
       productId: widget.productid,
-      hh: hour == 0 ? 12 : hour, // Handle 0 hour as 12
+      hh: hour == 0 ? 12 : hour,
+      // Handle 0 hour as 12
       mm: now.minute,
       meridiem: now.hour < 12 ? 'AM' : 'PM',
-      cycle: 1,
+      cycle: i + 1,
       isDeleted: false,
     );
     transation.add(defaultObj);
@@ -70,6 +75,7 @@ class _errorscreenState extends State<errorscreen> {
 
   var robotname;
   var robotlocation;
+  var lastRunStatus;
   var hour;
   var minute;
   var meridiem;
@@ -80,6 +86,7 @@ class _errorscreenState extends State<errorscreen> {
   var status;
   var Last_Cycle;
   var product_idisId;
+  String lastRunStatustext = '';
 
   Future<void> init() async {
     try {
@@ -89,30 +96,31 @@ class _errorscreenState extends State<errorscreen> {
       username = pref.getString('username') ?? '';
       accessToken = pref.getString('accessToken') ?? '';
       robot_id = pref.getString("robot_id").toString();
-      robotmode = (pref.getBool('robotmode')==true) ? 'Auto' : 'Manual';
-      Last_Cycle = pref.getString('createdDate').toString();
+      robotmode = (pref.getBool('robotmode') == true) ? 'Auto' : 'Manual';
       product_idisId = pref.getInt("product_idisId").toString();
       log('${widget.productid}');
       mode = pref.getBool('robotmode');
       IsActive = widget.ISACTIVE;
       switchValue = widget.mode;
-      print("@@@@@@@@@@@@@@     ${switchValue}, ${widget.mode}");
-      print("isssss    ${accessToken}");
+
       log('${profileImagePath}');
+
       var param = <String, dynamic>{};
       param['Id'] = widget.productid;
       var resdata = await apiService.tokenWithPostCall2(
           '/api/Product/GetProduct', param, accessToken);
       print('resdata ${resdata['status']}');
-      pref.setString("status",resdata['status'].toString());
+      pref.setString("status", resdata['status'].toString());
       param['UserId'] = USER_ID!;
       var resdata1 = await apiService.tokenWithPostCall2(
           '/api/Setting/GetProfileImage', param, accessToken);
       List<ProductTransaction> tempTransation = [];
+
       for (var element in resdata['data']['productTransaction']) {
         tempTransation
             .add(ProductTransaction.fromJson(element as Map<String, dynamic>));
       }
+
       if (tempTransation.isEmpty) {
         DateTime date = DateTime.now();
         int hour = date.hour % 12;
@@ -127,20 +135,40 @@ class _errorscreenState extends State<errorscreen> {
             isDeleted: false);
         tempTransation.add(defaultObj);
       }
-      log('rahul   ${widget.mode}');
-      Timer.periodic(const Duration(minutes: 1,), (timer) {
-        getBatteryLevel();
-      });
 
       setState(() {
         profileImagePath = resdata1['data'] ?? '';
         robotname = resdata['data']['robotName'];
         robotlocation = resdata['data']['robotLocation'];
+        lastRunStatus = resdata['data']['lastRunStatus'];
         transation = tempTransation;
         loader = false;
         txtController.text = '${hour}${minute} ${meridiem}';
         IsActive;
       });
+
+      if (lastRunStatus == 10) {
+        lastRunStatustext = 'Robot stuck in between \n(30 min timeout)';
+      } else if (lastRunStatus == 11) {
+        lastRunStatustext = 'False sensor detection \n(3 sec timeout)';
+      } else if (lastRunStatus == 12) {
+        lastRunStatustext = 'False sensor detection \n(3 sec timeout)';
+      } else if (lastRunStatus == 13) {
+        lastRunStatustext = 'False sensor detection \n(3 sec timeout)';
+      } else if (lastRunStatus == 14) {
+        lastRunStatustext = 'False sensor detection \n(3 sec timeout)';
+      } else if (lastRunStatus == 21) {
+        lastRunStatustext = 'Motor Failed Top \n(Buzzer)';
+      } else if (lastRunStatus == 22) {
+        lastRunStatustext = 'Motor Failed Bottom \n(Buzzer)';
+      } else if (lastRunStatus == 23) {
+        lastRunStatustext = 'Motor Failed Brush \n(Buzzer)';
+      } else if (lastRunStatus == 31) {
+        lastRunStatustext = 'Battery Not charging';
+      } else if (lastRunStatus == 41) {
+        lastRunStatustext = 'RTC Module not working';
+      }
+      log('lastRunStatus   $lastRunStatus');
     } catch (e) {
       // Handle any exceptions that occur during API calls or SharedPreferences access
       print('Error in init: $e');
@@ -148,68 +176,44 @@ class _errorscreenState extends State<errorscreen> {
     }
   }
 
-  final Battery _battery = Battery();
-  int _batteryLevel = 0;
-  late Timer timer;
-
-  getBatteryLevel() async {
-    final level = await _battery.batteryLevel;
-    setState(() {
-      _batteryLevel = level;
-    });
-    fetchIPAddress();
-  }
-
-  Future<void> fetchIPAddress() async {
-    // try {
-      DateTime currentTime = DateTime.now();
-      int unixTimestamp = currentTime.toUtc().millisecondsSinceEpoch ~/ 1000;
-      print('Unix Timestamp: $unixTimestamp seconds');
-      status = pref.getString('status').toString();
-      String formattedTimeString = convertToHHMM(Last_Cycle);
-
-      print('robotmode  ${pref.getBool('robotmode')}');
+  Future<void> callApiUpdate(
+      {required String ssid, required String password}) async {
+    try {
+      print('robot_id $product_idisId');
       Map<String, dynamic> requestBody = {
-        "id": 0,
-        "robotId": "${pref.getString("robot_id")}",
-        "currentTime": "$unixTimestamp",
-        "batteryStatus": "$_batteryLevel",
-        "currentMode": (pref.getBool('robotmode')==true) ? 'Auto' : 'Manual',
-        "lastRunStatus": "$status",
-        "lastCycle": formattedTimeString,
-        "cycle1": pref.getString("cycle1") ?? "",  // Convert nullable values to strings
-        "cycle2": pref.getString("cycle2") ?? "",  // Convert nullable values to strings
-        "ssid": pref.getString("ssid") ?? "",  // Convert nullable values to strings
-        "password": pref.getString("password") ?? "",  // Convert nullable values to strings
-        "isDeleted": isDeleted,
-        "key": "JIUzI1NiIsInR5cCI6IkpJ9XVC"
+        "Id": product_idisId,
+        "SSID": ssid,
+        "Password": password
       };
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        },
+      );
 
       print(' $requestBody');
 
-      var resdata1 = await apiService.tokenWithPostCall3(
-          '/api/Connection', requestBody, accessToken);
+      var resdata1 = await apiService.tokenWithPostCall2(
+          '/api/Product/UpdatePassword', requestBody, accessToken);
       print('resdata1 $resdata1');
       if (resdata1['status'] == 1) {
         print('Data sent successfully!');
+        Navigator.pop(context);
+        snackbar.ToastMsg(resdata1['message'], 2, 'green', context);
       } else {
-        return null;
+        Navigator.pop(context);
+        snackbar.ToastMsg(resdata1['message'], 2, 'red', context);
       }
-    // } catch (e) {
-    //   print('Error getting local IP address: $e');
-    // }
-  }
-
-  String convertToHHMM(String originalTimeString) {
-    DateFormat inputFormat = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSSSSS");
-    DateTime dateTime = inputFormat.parse(originalTimeString);
-    String formattedTimeString = DateFormat('HH:mm').format(dateTime);
-    return formattedTimeString;
+    } catch (e) {
+      print('Error getting local IP address: $e');
+    }
   }
 
   TextEditingController masterpass = TextEditingController();
-  // Duration duration = const Duration(hours: 0, minutes: 00);
-
   bool switchValue = true;
 
   GlobalKey<FormState> master = GlobalKey<FormState>();
@@ -300,7 +304,7 @@ class _errorscreenState extends State<errorscreen> {
                         "${productTransaction.hh}:${productTransaction.mm} ${productTransaction.meridiem}",
                         style: const TextStyle(
                           color: Color(0xff969696),
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -333,11 +337,11 @@ class _errorscreenState extends State<errorscreen> {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        setState(() {
-                          if (productTransaction.cycle > 1) {
-                            transation[index].cycle--;
-                          }
-                        });
+                        // setState(() {
+                        //   if (productTransaction.cycle > 1) {
+                        //     transation[index].cycle--;
+                        //   }
+                        // });
                       },
                       child: Container(
                         margin: const EdgeInsets.only(top: 10),
@@ -374,9 +378,9 @@ class _errorscreenState extends State<errorscreen> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        setState(() {
-                          transation[index].cycle++;
-                        });
+                        // setState(() {
+                        //   transation[index].cycle++;
+                        // });
                       },
                       child: Container(
                         margin: const EdgeInsets.only(top: 10),
@@ -409,11 +413,19 @@ class _errorscreenState extends State<errorscreen> {
                 print('resdata $param');
 
                 pref.setInt("Cycle", transation[index].cycle);
-                if(transation[index].cycle == 1){
-                  pref.setString("cycle1", "${transation[index].hh}:${transation[index].mm}");
-                }else if(transation[index].cycle == 2){
-                  pref.setString("cycle2", "${transation[index].hh}:${transation[index].mm}");
+                if (transation[index].cycle == 1) {
+                  pref.setString("cycle1",
+                      "${transation[index].hh}:${transation[index].mm}");
+                } else if (transation[index].cycle == 2) {
+                  pref.setString("cycle2",
+                      "${transation[index].hh}:${transation[index].mm}");
                 }
+
+                DateTime dateTime = DateTime.now().toLocal().add(Duration(
+                    hours: transation[index].hh,
+                    minutes: transation[index].mm));
+                int lastCycle = dateTime.millisecondsSinceEpoch ~/ 1000;
+                pref.setInt("createdDate", lastCycle);
 
                 if (resdata['status'] == 1) {
                   snackbar.ToastMsg(resdata['message'], 2, 'green', context);
@@ -460,21 +472,27 @@ class _errorscreenState extends State<errorscreen> {
               ),
               actions: [
                 profileImagePath.isNotEmpty
-                    ? CircleAvatar(
-                        backgroundColor: Colors.transparent,
-                        radius: 35,
+                    ? Container(
+                        margin: const EdgeInsets.only(right: 15),
+                        child: CircleAvatar(
+                            backgroundColor: Colors.transparent,
+                            radius: 35,
+                            child: ClipOval(
+                              child: Image.network(
+                                profileImagePath,
+                                width: 40,
+                                height: 40,
+                                fit: BoxFit.cover,
+                              ),
+                            )),
+                      )
+                    : Container(
+                        margin: const EdgeInsets.only(right: 15),
                         child: ClipOval(
-                          child: Image.network(
-                            profileImagePath,
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
+                          child: Image.asset(
+                            "assets/person.png",
+                            scale: 2,
                           ),
-                        ))
-                    : ClipOval(
-                        child: Image.asset(
-                          "assets/person.png",
-                          scale: 2,
                         ),
                       ),
               ],
@@ -577,7 +595,22 @@ class _errorscreenState extends State<errorscreen> {
                             ),
                             onPressed: () {
                               setState(() {
-                                addContainer();
+                                if (transation.length < 2) {
+                                  addContainer();
+                                } else {
+                                  print(
+                                      'object ${transation[1].hh}:${transation[1].mm}');
+                                  DateTime dateTime = DateTime.now()
+                                      .toLocal()
+                                      .add(Duration(
+                                          hours: transation[1].hh,
+                                          minutes: transation[1].mm));
+                                  int lastCycle =
+                                      dateTime.millisecondsSinceEpoch ~/ 1000;
+                                  pref.setInt("createdDate", lastCycle);
+                                  snackbar.ToastMsg("You can add only 2 cycle",
+                                      2, "green", context);
+                                }
                               });
                             },
                             child: const Text(
@@ -825,9 +858,12 @@ class _errorscreenState extends State<errorscreen> {
 
                                             if (resdata['status'] == 1) {
                                               // await pref.setBool("mode", mode!);
-                                              await pref.setBool('robotmode', resdata['data']['mode']);
-                                              print('robotmode0  ${resdata['data']['mode']}>>${pref.getBool('robotmode')}');
-                                              await pref.setBool('switchValue', switchValue);
+                                              await pref.setBool('robotmode',
+                                                  resdata['data']['mode']);
+                                              print(
+                                                  'robotmode0  ${resdata['data']['mode']}>>${pref.getBool('robotmode')}');
+                                              await pref.setBool(
+                                                  'switchValue', switchValue);
                                               Navigator.pop(context);
                                               snackbar.ToastMsg(
                                                   resdata['message'],
@@ -906,13 +942,19 @@ class _errorscreenState extends State<errorscreen> {
                                                 widget.productid;
                                             param['Mode'] = true;
                                             param['IsdryRun'] = true;
-                                            var resdata = await apiService.tokenWithPostCall2('/api/Product/UpdateProductMode', param, accessToken);
+                                            var resdata = await apiService
+                                                .tokenWithPostCall2(
+                                                    '/api/Product/UpdateProductMode',
+                                                    param,
+                                                    accessToken);
                                             print(' $resdata');
                                             log('sauto:${switchValue}');
                                             log('${resdata['data']['mode']}');
                                             if (resdata['status'] == 1) {
-                                              await pref.setBool('robotmode', resdata['data']['mode']);
-                                              print('robotmode1  ${resdata['data']['mode']}>>${pref.getBool('robotmode')}');
+                                              await pref.setBool('robotmode',
+                                                  resdata['data']['mode']);
+                                              print(
+                                                  'robotmode1  ${resdata['data']['mode']}>>${pref.getBool('robotmode')}');
                                               snackbar.ToastMsg(
                                                   resdata['message'],
                                                   2,
@@ -927,7 +969,8 @@ class _errorscreenState extends State<errorscreen> {
                                             height: 40,
                                             decoration: BoxDecoration(
                                               color: const Color(0xff1539b0),
-                                              borderRadius: BorderRadius.circular(10),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
                                             ),
                                             child: const Center(
                                               child: Text(
@@ -1027,68 +1070,206 @@ class _errorscreenState extends State<errorscreen> {
                       });
                     },
                     child: Container(
-                      height: 50,
+                      padding: const EdgeInsets.only(left: 6,top: 10,right: 6,bottom: 10),
                       decoration: BoxDecoration(
-                        color:
-                            //  !_isEnabled
-                            // ? const Color(0xffcb0303)
-                            const Color(0xff01b70e),
+                        color: lastRunStatus == 0 || lastRunStatus == null
+                            ? const Color(0xff01b70e)
+                            : const Color(0xffff0000),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Center(
-                        child: Text(
-                          "Error - 01",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              overflow: TextOverflow.ellipsis),
-                        ),
-                      ),
+                      child: lastRunStatus == 0 || lastRunStatus == null
+                          ? const Center(
+                              child: Text(
+                                "No Error",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    overflow: TextOverflow.ellipsis),
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                "Error - $lastRunStatus \n$lastRunStatustext",
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                     ),
                   ),
                   GestureDetector(
                     onTap: () async {
-                      var param = new Map<String, dynamic>();
-                      param['Id'] = widget.productid;
-                      IsActive = pref.getBool("isActive");
-                      if (IsActive == true) {
-                        IsActive = false;
-                      } else {
-                        IsActive = true;
-                      }
-                      param['IsActive'] = IsActive;
-
-                      var resdata = await apiService.tokenWithPostCall2(
-                          '/api/Product/UpdateActiveStatus',
-                          param,
-                          accessToken);
-                      await pref.setBool('isActive', IsActive!);
-                      if (resdata['status'] == 1) {
-                        pref.setBool('isActive', IsActive!);
-                        setState(() {
-                          IsActive = IsActive!;
-                        });
-                        snackbar.ToastMsg(
-                            resdata['message'], 2, 'green', context);
-                      } else if (resdata['status'] == 2) {
-                        snackbar.ToastMsg(
-                            resdata['message'], 2, 'red', context);
-                      }
+                      // var param = new Map<String, dynamic>();
+                      // param['Id'] = widget.productid;
+                      // IsActive = pref.getBool("isActive");
+                      // if (IsActive == true) {
+                      //   IsActive = false;
+                      // } else {
+                      //   IsActive = true;
+                      // }
+                      // param['IsActive'] = IsActive;
+                      //
+                      // var resdata = await apiService.tokenWithPostCall2(
+                      //     '/api/Product/UpdateActiveStatus',
+                      //     param,
+                      //     accessToken);
+                      // await pref.setBool('isActive', IsActive!);
+                      // if (resdata['status'] == 1) {
+                      //   pref.setBool('isActive', IsActive!);
+                      //   setState(() {
+                      //     IsActive = IsActive!;
+                      //   });
+                      //   snackbar.ToastMsg(
+                      //       resdata['message'], 2, 'green', context);
+                      // } else if (resdata['status'] == 2) {
+                      //   snackbar.ToastMsg(
+                      //       resdata['message'], 2, 'red', context);
+                      // }
                     },
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 20),
                       height: 100,
                       width: 60,
-                      child: IsActive == true
-                          ? Image.asset(
-                              "assets/on_btn.png",
-                            )
-                          : Image.asset(
-                              "assets/off.png",
-                            ),
+                      child: Image.asset(
+                        "assets/off.png",
+                      ),
                     ),
                   ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  const Text("Online Mode"),
+                  const SizedBox(
+                    height: 5,
+                  ),
+                  Form(
+                    key: verifys,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: ssid,
+                          decoration: InputDecoration(
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(
+                                width: 2,
+                                color: Color(0xffe1e1e1),
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(
+                                width: 2,
+                                color: Colors.red,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(
+                                width: 2,
+                                color: Colors.red,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(
+                                width: 2,
+                                color: Color(
+                                    0xff1539b0), // Set the border color to red
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            hintText: 'Enter SSID',
+                            hintStyle:
+                                const TextStyle(color: Color(0xff969696)),
+                          ),
+                          validator: (value) {
+                            if (value!.isEmpty) {
+                              return 'Please enter a SSID';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 5),
+                        TextFormField(
+                          controller: password,
+                          obscureText: true,
+                          decoration: InputDecoration(
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(
+                                width: 2,
+                                color: Color(0xffe1e1e1),
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(
+                                width: 2,
+                                color: Colors.red,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(
+                                width: 2,
+                                color: Colors.red,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(
+                                width: 2,
+                                color: Color(
+                                    0xff1539b0), // Set the border color to red
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            hintText: 'Enter Password',
+                            hintStyle:
+                                const TextStyle(color: Color(0xff969696)),
+                          ),
+                          validator: (value) {
+                            if (value!.isEmpty) {
+                              return 'Please enter a password';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: () async {
+                            // Validate the form
+                            if (verifys.currentState!.validate()) {
+                              // Form is valid, proceed with the update
+                              callApiUpdate(
+                                ssid: ssid.text,
+                                password: password.text,
+                              );
+                            }
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 20),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: const Color(0xff1539b0),
+                            ),
+                            height: 55,
+                            width: MediaQuery.of(context).size.width,
+                            alignment: Alignment.center,
+                            child: const Text(
+                              "Update Info",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 20),
+                              textAlign: TextAlign.end,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  )
                 ],
               ),
             ),
