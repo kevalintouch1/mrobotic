@@ -316,7 +316,7 @@ class _contact_usState extends State<hardwareconnect> {
     final Map<String, String> data = {
       'Key': 'JIUzI1NiIsInR5cCI6IkpJ9XVC',
       'SSID': ssid.text,
-      'password': password.text,
+      'Password': password.text,
       'Robot_ID': pref.getString("robot_id").toString(),
     };
 

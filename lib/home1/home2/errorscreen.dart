@@ -69,7 +69,7 @@ class _errorscreenState extends State<errorscreen> {
   void initState() {
     super.initState();
 
-    txtController.text = DateFormat('h:mm a').format(DateTime.now());
+    txtController.text = DateFormat('hh:mm a').format(DateTime.now());
     init();
   }
 
@@ -101,7 +101,7 @@ class _errorscreenState extends State<errorscreen> {
       log('${widget.productid}');
       mode = pref.getBool('robotmode');
       IsActive = widget.ISACTIVE;
-      switchValue = widget.mode;
+      // switchValue = widget.mode;
 
       log('${profileImagePath}');
 
@@ -136,16 +136,20 @@ class _errorscreenState extends State<errorscreen> {
         tempTransation.add(defaultObj);
       }
 
+      print('GetProfileImage2: ${resdata}');
       setState(() {
         profileImagePath = resdata1['data'] ?? '';
         robotname = resdata['data']['robotName'];
         robotlocation = resdata['data']['robotLocation'];
         lastRunStatus = resdata['data']['lastRunStatus'];
+        switchValue = resdata['data']['mode'];
         transation = tempTransation;
         loader = false;
         txtController.text = '${hour}${minute} ${meridiem}';
         IsActive;
       });
+
+      print('switchValue: $switchValue');
 
       if (lastRunStatus == 10) {
         lastRunStatustext = 'Robot stuck in between \n(30 min timeout)';
@@ -242,12 +246,12 @@ class _errorscreenState extends State<errorscreen> {
           TimeOfDay? time = await showTimePicker(
             context: context,
             initialTime: TimeOfDay(
-                hour: productTransaction.hh, minute: productTransaction.mm),
-            // useRootNavigator: false,
+              hour: productTransaction.hh,
+              minute: productTransaction.mm,
+            ),
             builder: (BuildContext context, Widget? child) {
               return MediaQuery(
-                data: MediaQuery.of(context)
-                    .copyWith(alwaysUse24HourFormat: false),
+                data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
                 child: Theme(
                   data: ThemeData.light().copyWith(
                     primaryColor: const Color(0xff1539b0),
@@ -794,200 +798,22 @@ class _errorscreenState extends State<errorscreen> {
                     child: Center(
                         child: MergeSemantics(
                       child: ListTile(
-                        title: CupertinoSwitch(
+                        title:
+                        CupertinoSwitch(
                           value: switchValue,
                           onChanged: (bool value) {
                             setState(() {
-                              switchValue = value;
-                              print(switchValue);
-                              print(123);
-                              print(value);
-                              if (!switchValue) {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => Container(
-                                    decoration: const BoxDecoration(
-                                      image: DecorationImage(
-                                          image: AssetImage(
-                                            "assets/bg2.png",
-                                          ),
-                                          fit: BoxFit.cover),
-                                    ),
-                                    child: AlertDialog(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      titlePadding: const EdgeInsets.only(
-                                          right: 10, top: 30, left: 10),
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 10),
-                                      actionsAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      backgroundColor: Colors.white,
-                                      title: Image.asset(
-                                        "assets/warning.png",
-                                        scale: 3,
-                                      ),
-                                      content: const Text(
-                                        "You miss your today's daily Cleaning Cycle",
-                                        style: TextStyle(
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      actions: [
-                                        GestureDetector(
-                                          onTap: () async {
-                                            var param =
-                                                new Map<String, dynamic>();
-                                            param['ProductId'] =
-                                                widget.productid;
-                                            // mode = pref.getBool('robotmode');
-
-                                            var resdata = await apiService
-                                                .tokenWithPostCall2(
-                                                    '/api/Product/UpdateProductMode',
-                                                    param,
-                                                    accessToken);
-
-                                            param['Mode'] = false;
-                                            param['IsdryRun'] = false;
-                                            log('mode  ${resdata['data']['mode']}');
-
-                                            if (resdata['status'] == 1) {
-                                              // await pref.setBool("mode", mode!);
-                                              await pref.setBool('robotmode',
-                                                  resdata['data']['mode']);
-                                              print(
-                                                  'robotmode0  ${resdata['data']['mode']}>>${pref.getBool('robotmode')}');
-                                              await pref.setBool(
-                                                  'switchValue', switchValue);
-                                              Navigator.pop(context);
-                                              snackbar.ToastMsg(
-                                                  resdata['message'],
-                                                  2,
-                                                  'green',
-                                                  context);
-                                            }
-                                          },
-                                          child: Container(
-                                            margin: const EdgeInsets.symmetric(
-                                                horizontal: 60),
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xff1539b0),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            child: const Center(
-                                              child: Text(
-                                                "OK",
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                    overflow:
-                                                        TextOverflow.ellipsis),
-                                              ),
-                                            ),
-                                          ),
-                                        )
-                                      ],
-                                    ),
-                                  ),
+                              if (switchValue) {
+                                showAlertDialog(
+                                  title: "Warning",
+                                  content: "You miss your today's daily Cleaning Cycle",
+                                  onOkPressed: () => updateSwitchValue(false),
                                 );
                               } else {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) => Container(
-                                    decoration: const BoxDecoration(
-                                      image: DecorationImage(
-                                          image: AssetImage(
-                                            "assets/bg2.png",
-                                          ),
-                                          fit: BoxFit.cover),
-                                    ),
-                                    child: AlertDialog(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      titlePadding: const EdgeInsets.only(
-                                          right: 10, top: 30, left: 10),
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 10),
-                                      actionsAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      backgroundColor: Colors.white,
-                                      title: Image.asset(
-                                        "assets/warning.png",
-                                        scale: 3,
-                                      ),
-                                      content: const Text(
-                                        "You want to start Auto Mode ?",
-                                        style: TextStyle(
-                                            color: Colors.black,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      actions: [
-                                        GestureDetector(
-                                          onTap: () async {
-                                            var param =
-                                                new Map<String, dynamic>();
-                                            param['ProductId'] =
-                                                widget.productid;
-                                            param['Mode'] = true;
-                                            param['IsdryRun'] = true;
-                                            var resdata = await apiService
-                                                .tokenWithPostCall2(
-                                                    '/api/Product/UpdateProductMode',
-                                                    param,
-                                                    accessToken);
-                                            print(' $resdata');
-                                            log('sauto:${switchValue}');
-                                            log('${resdata['data']['mode']}');
-                                            if (resdata['status'] == 1) {
-                                              await pref.setBool('robotmode',
-                                                  resdata['data']['mode']);
-                                              print(
-                                                  'robotmode1  ${resdata['data']['mode']}>>${pref.getBool('robotmode')}');
-                                              snackbar.ToastMsg(
-                                                  resdata['message'],
-                                                  2,
-                                                  'green',
-                                                  context);
-                                              Navigator.pop(context);
-                                            }
-                                          },
-                                          child: Container(
-                                            margin: const EdgeInsets.symmetric(
-                                                horizontal: 60),
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xff1539b0),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            child: const Center(
-                                              child: Text(
-                                                "OK",
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                    overflow:
-                                                        TextOverflow.ellipsis),
-                                              ),
-                                            ),
-                                          ),
-                                        )
-                                      ],
-                                    ),
-                                  ),
+                                showAlertDialog(
+                                  title: "Confirmation",
+                                  content: "You want to start Auto Mode?",
+                                  onOkPressed: () => updateSwitchValue(true),
                                 );
                               }
                             });
@@ -1274,5 +1100,96 @@ class _errorscreenState extends State<errorscreen> {
               ),
             ),
           );
+  }
+
+  void showAlertDialog({
+    required String title,
+    required String content,
+    required void Function() onOkPressed,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/bg2.png"),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          titlePadding: const EdgeInsets.only(right: 10, top: 30, left: 10),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 10,
+          ),
+          actionsAlignment: MainAxisAlignment.spaceAround,
+          backgroundColor: Colors.white,
+          title: Image.asset(
+            "assets/warning.png",
+            scale: 3,
+          ),
+          content: Text(
+            content,
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            GestureDetector(
+              onTap: onOkPressed,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 60),
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xff1539b0),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Center(
+                  child: Text(
+                    "OK",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void updateSwitchValue(bool isAutoMode) async {
+    var param = Map<String, dynamic>();
+    param['ProductId'] = widget.productid;
+    param['Mode'] = isAutoMode;
+    param['IsdryRun'] = !isAutoMode;
+
+    var resdata = await apiService.tokenWithPostCall2(
+      '/api/Product/UpdateProductMode',
+      param,
+      accessToken,
+    );
+
+    if (resdata['status'] == 1) {
+      setState(() {
+        switchValue = isAutoMode;
+        pref.setBool('robotmode', resdata['data']['mode']);
+      });
+
+      Navigator.pop(context);
+      snackbar.ToastMsg(resdata['message'], 2, 'green', context);
+    }
+    print('switchValue2: $switchValue');
   }
 }
